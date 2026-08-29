@@ -50,6 +50,11 @@ MODE = os.environ.get("TJ_MODE", "general")
 GATE = os.environ.get("TJ_GATE", "ev")
 FLOOR = int(os.environ.get("TJ_FLOOR", "3"))
 PRIOR = os.environ.get("TJ_PRIOR", "pop_price")
+# Top-1 confidence gate (Paper C, CIKM 2024, EU(Recommend) beta2*Conf(Top1)):
+# emit early when Rank-1's score leads Rank-2 by >= MARGIN. Default off; the
+# tuned value is 1.0 (public-200: 0.9588 -> 0.9616, MRR unchanged). See
+# TECHJAM_MARGIN_GATE_ENHANCEMENT.md.
+MARGIN = float(os.environ.get("TJ_MARGIN", "0"))
 
 
 # --------------------------------------------------------------- catalog view
@@ -580,6 +585,10 @@ class Agent:
             return True, "candidate pool collapsed to 1 - Rank-1 certain"
         if st.exhausted:
             return True, "intent card exhausted - no more information available"
+        if MARGIN and st.turn >= 2 and st.constraints and len(ranked) >= 2:
+            sc = st.diag.get("scores", {})
+            if ranked[0] in sc and ranked[1] in sc and (sc[ranked[0]] - sc[ranked[1]]) >= MARGIN:
+                return True, "score margin dominant - Rank-1 confident (Paper C top1_conf)"
         if st.turn >= FLOOR:
             return True, f"turn {st.turn} >= emit floor {FLOOR} - information saturated"
         if st.turn >= 2 and st.no_new_info_turns >= 2:
