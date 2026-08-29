@@ -2,6 +2,8 @@
 
 配套技术文档：[`../TECHJAM_SOLUTION_DESIGN.md`](../TECHJAM_SOLUTION_DESIGN.md)
 
+下一代候选架构：[`../FARM_RL_ARCHITECTURE.md`](../FARM_RL_ARCHITECTURE.md)（字段对齐混合检索 + 强化学习策略；稳定提交文件未改动）
+
 ## 实测成绩（官方 `evaluator/local_evaluator.py`，公开集 200 会话）
 
 ```
