@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shopping Copilot · TechJam</title>
+<script src="/assets/vendor/react.production.min.js"></script>
+<script src="/assets/vendor/react-dom.production.min.js"></script>
+<script src="/assets/vendor/babel.min.js"></script>
+<link rel="stylesheet" href="/assets/app.css">
+<script>/* apply the stored theme before first paint so there is no flash */
+try{var t=localStorage.getItem("tj-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}
+</script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback,useContext,createContext} = React;
+
+/* ================================================================ i18n ==== */
+/* UI chrome is translated; conversation content (agent replies, simulated
+   customer utterances, product titles, sample queries) is DATA and stays in
+   its original language in both modes. */
+const STRINGS = {
+  en: {
+    tab_replay:"Session Replay", tab_live:"Free Chat",
+    theme_auto:"System", theme_light:"Light", theme_dark:"Dark",
+    theme_tip:"Theme: {0} (click to cycle)",
+    lang_tip:"界面切换为中文",
+    boot_building:"Building in-memory indexes over 50,000 products…",
+    boot_once:"about 25 s, one time only", boot_fail:"Backend not ready",
+    sec_samples:"Labeled sessions ({0})", filt_all:"All",
+    para_toggle:"Paraphrase stress-test",
+    para_desc:"Rewrites every customer utterance on the fly — proves the NLU survives non-template wording.",
+    para_badge:"PARAPHRASED",
+    empty_replay:"Pick a labeled session on the left to watch the agent pin down the hidden target within 10 turns.",
+    busy_replay:"Replaying under the official protocol…",
+    turn:"Turn {0}", pre_override:"pre-override — hits don't count yet",
+    held:"Gate closed · no products this turn: ",
+    v_result:"Result", v_hit_turn:"Hit turn", v_rank:"Rank", v_rr:"RR", v_target:"Target",
+    pb_prev:"‹ Prev", pb_play:"▶ Play", pb_pause:"⏸ Pause", pb_next:"Next ›",
+    pb_skip:"Skip to result", pb_pos:"turn {0} / {1} · {2}",
+    sec_funnel:"Retrieval funnel", sec_gate:"Emission gate (L5)",
+    sec_turn:"This turn", sec_system:"System",
+    f_catalog:"Catalog", f_bucket:"Bucket", f_filter:"Filtered",
+    gate_open:"▶ Emit results", gate_shut:"⏸ Hold — ask instead",
+    r_layer:"NLU layer", r_route:"Route", r_cat:"Category", r_ask:"Asked attribute",
+    r_lat:"Latency", r_tok:"LLM tokens",
+    s_products:"Indexed products", s_cats:"Coarse categories", s_spans:"Span index keys",
+    s_cold:"Cold start", s_deps:"External deps", s_none:"None",
+    layer_A:"Layer A · Templates", layer_B:"Layer B · Span recovery", layer_C:"Layer C · Lexical fallback",
+    no_trace:"No retrieval trace yet", wait_t1:"Waiting for turn 1",
+    sec_cons:"Constraint state (L2)", no_cons:"No constraints accumulated yet",
+    cons_skip:"Turn {0}: no preference stated — skipped",
+    sec_profile:"User profile", p_freq:"Purchase frequency", p_avg:"Avg prior rating", p_style:"Rating style",
+    sec_hidden:"Hidden intent card (invisible to the agent)",
+    sec_session:"Session profile", sec_actions:"Actions",
+    new_session:"↺ New session", new_session_desc:"Reset the state machine, start a fresh 10 turns",
+    empty_live:"Type a request, or click a sample below.\nThe right panel shows the agent's reasoning live.",
+    searching:"Searching…", composer_ph:"Describe what you're shopping for…", send:"Send",
+    gate_reasons:null,   // English mode shows the backend's native reason text
+  },
+  zh: {
+    tab_replay:"标注会话回放", tab_live:"自由对话",
+    theme_auto:"跟随系统", theme_light:"明亮", theme_dark:"暗色",
+    theme_tip:"主题：{0}（点击切换）",
+    lang_tip:"Switch UI to English",
+    boot_building:"正在构建 50,000 条商品的内存索引…",
+    boot_once:"约 25 秒，仅需一次", boot_fail:"后端未就绪",
+    sec_samples:"带标注会话 ({0})", filt_all:"全部",
+    para_toggle:"改写压力测试",
+    para_desc:"实时改写顾客的每一句话术——验证 NLU 在非模板措辞下依然工作。",
+    para_badge:"改写模式",
+    empty_replay:"从左侧选择一个带标注会话\n观察 Agent 如何在 10 轮内锁定隐藏目标",
+    busy_replay:"正在按官方协议回放…",
+    turn:"第 {0} 轮", pre_override:"覆写前，命中不计分",
+    held:"门控关闭 · 本轮不返回商品：",
+    v_result:"结果", v_hit_turn:"命中轮次", v_rank:"排名", v_rr:"RR", v_target:"目标",
+    pb_prev:"‹ 上一轮", pb_play:"▶ 播放", pb_pause:"⏸ 暂停", pb_next:"下一轮 ›",
+    pb_skip:"跳到结果", pb_pos:"{0} / {1} 轮 · {2}",
+    sec_funnel:"检索漏斗", sec_gate:"发布门控 (L5)",
+    sec_turn:"本轮解析", sec_system:"系统",
+    f_catalog:"目录", f_bucket:"品类桶", f_filter:"约束过滤",
+    gate_open:"▶ 发布结果", gate_shut:"⏸ 暂不发布，先提问",
+    r_layer:"NLU 层", r_route:"路由", r_cat:"品类", r_ask:"提问属性",
+    r_lat:"本轮延迟", r_tok:"LLM tokens",
+    s_products:"索引商品", s_cats:"粗品类", s_spans:"跨度索引键",
+    s_cold:"冷启动", s_deps:"外部依赖", s_none:"无",
+    layer_A:"Layer A · 模板", layer_B:"Layer B · 跨度恢复", layer_C:"Layer C · 词法兜底",
+    no_trace:"尚无检索轨迹", wait_t1:"等待第一轮",
+    sec_cons:"约束状态 (L2)", no_cons:"尚未累积任何约束",
+    cons_skip:"第 {0} 轮：用户表示无偏好，跳过",
+    sec_profile:"用户画像", p_freq:"购买频次", p_avg:"历史均分", p_style:"评价风格",
+    sec_hidden:"隐藏意图卡（Agent 不可见）",
+    sec_session:"会话画像", sec_actions:"操作",
+    new_session:"↺ 新建会话", new_session_desc:"清空状态机，重新开始 10 轮",
+    empty_live:"直接输入需求，或点下方示例\n右侧面板会实时显示 Agent 的推理过程",
+    searching:"检索中…", composer_ph:"描述你想要的商品…", send:"发送",
+    gate_reasons:[  // pattern → zh template ($1… = captured groups)
+      [/^candidate pool collapsed to 1.*/i, "候选池坍缩至 1 —— Rank-1 已确定"],
+      [/^turn (\d+) >= emit floor (\d+).*/i, "第 $1 轮 ≥ 强制发布轮 $2 —— 信息已饱和"],
+      [/^(\d+) candidates remain.*/i, "剩余 $1 个候选 —— E[rank] > 1，先提问不出结果"],
+      [/^intent card exhausted.*/i, "意图卡已榨干 —— 无更多信息可获取"],
+      [/^no new information for 2 turns.*/i, "连续 2 轮无新信息"],
+      [/^Layer C fallback.*/i, "Layer C 兜底 —— 无更多信息可期待，立即发布"],
+      [/^no candidates.*/i, "无候选"],
+    ],
+  },
+};
+const fmtT = (s, ...args) => args.reduce((acc,v,i)=>acc.replaceAll("{"+i+"}", String(v)), s);
+const LangCtx = createContext(null);
+function useLangState(){
+  const [lang,setLang]=useState(()=>{
+    try{ const v=localStorage.getItem("tj-lang"); if(v==="zh"||v==="en") return v; }catch(e){}
+    return (navigator.language||"en").toLowerCase().startsWith("zh") ? "zh" : "en";
+  });
+  useEffect(()=>{
+    try{ localStorage.setItem("tj-lang", lang) }catch(e){}
+    document.documentElement.lang = lang;
+  },[lang]);
+  const t=useCallback((key,...args)=>{
+    const s=STRINGS[lang][key] ?? STRINGS.en[key] ?? key;
+    return args.length? fmtT(s,...args) : s;
+  },[lang]);
+  const gateReason=useCallback(raw=>{
+    const maps=STRINGS[lang].gate_reasons;
+    if(!maps||!raw) return raw;
+    for(const [re,tpl] of maps){ const m=raw.match(re); if(m) return raw.replace(re,tpl); }
+    return raw;
+  },[lang]);
+  return {lang,setLang,t,gateReason};
+}
+const useLang=()=>useContext(LangCtx);
+
+/* ============================================================== helpers ==== */
+const api=(p,b)=>fetch(p,b?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}:undefined).then(r=>{
+  if(!r.ok) return r.json().then(e=>{throw new Error(e.detail||r.statusText)});
+  return r.json();
+});
+const HUES=["#38bdf8","#34d399","#fbbf24","#f87171","#a78bfa","#f0abfc","#5eead4","#fdba74"];
+const hue=s=>HUES[[...(s||"x")].reduce((a,c)=>a+c.charCodeAt(0),0)%HUES.length];
+const fmt=n=>(n??0).toLocaleString();
+
+function Num({v}){
+  const [d,setD]=useState(v); const r=useRef(v);
+  useEffect(()=>{
+    const from=r.current, to=v, t0=performance.now(), dur=520;
+    if(from===to){setD(to);return}
+    let raf; const step=t=>{
+      const k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);
+      setD(Math.round(from+(to-from)*e));
+      if(k<1) raf=requestAnimationFrame(step); else r.current=to;
+    };
+    raf=requestAnimationFrame(step);
+    // rAF is suspended while the tab is not compositing; guarantee the final value lands
+    const settle=setTimeout(()=>{setD(to); r.current=to;}, dur+60);
+    return ()=>{cancelAnimationFrame(raf); clearTimeout(settle);};
+  },[v]);
+  return <>{fmt(d)}</>;
+}
+
+function Funnel({tr}){
+  const {t}=useLang();
+  if(!tr) return <div className="empty">{t("no_trace")}</div>;
+  const cat=tr.pool_catalog||50000, s1=tr.pool_stage1||0, s2=tr.pool_stage2||0;
+  const w=n=>Math.max(1.5,(Math.log10(Math.max(n,1))/Math.log10(Math.max(cat,10)))*100);
+  const rows=[[t("f_catalog"),cat,"var(--bar-1)"],[t("f_bucket"),s1,"var(--bar-2)"],[t("f_filter"),s2,"var(--bar-3)"]];
+  return <div className="funnel">
+    {rows.map(([lab,n,c])=>
+      <div className="fstage" key={lab}>
+        <div className="flab">{lab}</div>
+        <div className="fbar"><div className="ffill" style={{width:w(n)+"%",background:c}}/></div>
+        <div className="fnum"><Num v={n}/></div>
+      </div>)}
+  </div>;
+}
+
+function ProductCard({p,rank,isTarget}){
+  const c=hue(p.parent_asin);
+  return <div className={"pc"+(isTarget?" tgt":"")}>
+    <div className="rk">#{rank}</div>
+    <div className="thumb" style={{background:`linear-gradient(135deg,${c},${c}55)`}}>
+      {(p.title||"?").trim()[0].toUpperCase()}
+    </div>
+    <div className="nm" title={p.title}>{p.title}</div>
+    <div className="mt">
+      <span className="pr">{p.price!=null?`$${p.price}`:"—"}</span>
+      <span>★ {p.average_rating??"—"} ({fmt(p.rating_number)})</span>
+    </div>
+    {p.score!=null && <div className="sc">score {p.score}</div>}
+  </div>;
+}
+
+function Reasoning({tr,meta}){
+  const {t,gateReason}=useLang();
+  const LAYER={A:["b-cy",t("layer_A")],B:["b-vi",t("layer_B")],C:["b-dm",t("layer_C")]};
+  const [lc,ln]=LAYER[tr?.nlu_layer]||LAYER.C;
+  return <div className="scroll">
+    <div className="sec">{t("sec_funnel")}</div>
+    <div className="box"><Funnel tr={tr}/></div>
+
+    <div className="sec">{t("sec_gate")}</div>
+    {tr ? <div className={"gate "+(tr.gate?"open":"shut")}>
+        <div className="gt">{tr.gate?t("gate_open"):t("gate_shut")}</div>
+        <div className="gr">{gateReason(tr.gate_reason)}</div>
+      </div> : <div className="empty">{t("wait_t1")}</div>}
+
+    <div className="sec">{t("sec_turn")}</div>
+    <div className="box">
+      <div className="rrow"><span>{t("r_layer")}</span><b><span className={"badge "+lc}>{ln}</span></b></div>
+      <div className="rrow"><span>{t("r_route")}</span><b>
+        <span className={"badge "+(tr?.route==="PRECISION"?"b-gn":"b-am")}>{tr?.route||"—"}</span></b></div>
+      <div className="rrow"><span>{t("r_cat")}</span><b>{tr?.category||"—"}</b></div>
+      <div className="rrow"><span>{t("r_ask")}</span><b>{tr?.ask_attribute?
+        <span className="badge b-cy">{tr.ask_attribute}</span>:"—"}</b></div>
+      <div className="rrow"><span>{t("r_lat")}</span><b>{tr?`${tr.latency_ms} ms`:"—"}</b></div>
+      <div className="rrow"><span>{t("r_tok")}</span><b>0</b></div>
+    </div>
+
+    <div className="sec">{t("sec_system")}</div>
+    <div className="box">
+      <div className="rrow"><span>{t("s_products")}</span><b>{fmt(meta?.products)}</b></div>
+      <div className="rrow"><span>{t("s_cats")}</span><b>{fmt(meta?.categories)}</b></div>
+      <div className="rrow"><span>{t("s_spans")}</span><b>{fmt(meta?.span_index_keys)}</b></div>
+      <div className="rrow"><span>{t("s_cold")}</span><b>{meta?.build_seconds}s</b></div>
+      <div className="rrow"><span>{t("s_deps")}</span><b style={{color:"var(--green)"}}>{t("s_none")}</b></div>
+    </div>
+  </div>;
+}
+
+function Constraints({turns,upto}){
+  const {t}=useLang();
+  const seen=[]; let pivot=null; const skipped=[];
+  turns.slice(0,upto).forEach(x=>{
+    (x.trace?.new_constraints||[]).forEach(c=>{ if(!seen.includes(c)) seen.push(c); });
+    if(x.trace?.boundary) skipped.push(x.turn);
+    if(/ignore my earlier|scratch that|forget|change of plan/i.test(x.user||""))
+      pivot=(x.trace?.new_constraints||[])[0]||null;
+  });
+  if(!seen.length && !skipped.length) return <div className="empty">{t("no_cons")}</div>;
+  return <div>
+    {seen.map((c,i)=>{
+      const isP=pivot&&c===pivot;
+      return <div className={"cons "+(isP?"pivot":"add")} key={i}>
+        <div className="ic">{isP?"⟳":"✓"}</div><code>{c}</code></div>;
+    })}
+    {skipped.map(x=><div className="cons skip" key={"s"+x}>
+      <div className="ic">✗</div><code>{t("cons_skip",x)}</code></div>)}
+  </div>;
+}
+
+function Profile({p}){
+  const {t}=useLang();
+  if(!p) return null;
+  return <div className="box">
+    <div className="kv"><span>{t("p_freq")}</span><b>{p.purchase_frequency}</b></div>
+    <div className="kv"><span>{t("p_avg")}</span><b>{p.average_prior_rating}</b></div>
+    <div className="kv"><span>{t("p_style")}</span><b>{p.rating_style}</b></div>
+    <div className="tags">{(p.preference_tags||[]).map(x=><span className="tag" key={x}>{x}</span>)}</div>
+  </div>;
+}
+
+/* =====================================================  REPLAY  =========== */
+function Replay({meta}){
+  const {t}=useLang();
+  const [samples,setSamples]=useState([]);
+  const [filter,setFilter]=useState("all");
+  const [para,setPara]=useState(false);
+  const [sel,setSel]=useState(null);
+  const [data,setData]=useState(null);
+  const [upto,setUpto]=useState(0);
+  const [playing,setPlaying]=useState(false);
+  const [busy,setBusy]=useState(false);
+  const streamRef=useRef(null);
+
+  useEffect(()=>{api("/api/samples").then(setSamples)},[]);
+  useEffect(()=>{
+    if(!playing||!data) return;
+    if(upto>=data.turns.length){setPlaying(false);return}
+    const id=setTimeout(()=>setUpto(u=>u+1),1400);
+    return ()=>clearTimeout(id);
+  },[playing,upto,data]);
+  useEffect(()=>{
+    if(streamRef.current) streamRef.current.scrollTop=streamRef.current.scrollHeight;
+  },[upto,data]);
+
+  const run=async(s,p=para)=>{
+    setSel(s.sample_id); setBusy(true); setData(null); setUpto(0); setPlaying(false);
+    try{
+      const d=await api("/api/replay",{sample_id:s.sample_id,paraphrase:p});
+      setData(d); setUpto(1); setPlaying(true);
+    }finally{ setBusy(false) }
+  };
+  const togglePara=()=>{
+    const np=!para; setPara(np);
+    const cur=samples.find(s=>s.sample_id===sel);
+    if(cur) run(cur,np);                    // re-run the open session under the new mode
+  };
+
+  const shown=data?data.turns.slice(0,upto):[];
+  const cur=shown.length?shown[shown.length-1]:null;
+  const done=data&&upto>=data.turns.length;
+  const list=samples.filter(s=>filter==="all"||s.scenario_type===filter);
+
+  return <div className="main">
+    {/* ------------------------------------------------------------ left --- */}
+    <div className="col l"><div className="scroll">
+      <label className={"ptoggle"+(para?" on":"")}>
+        <input type="checkbox" checked={para} onChange={togglePara}/>
+        <div>
+          <div className="pt-title">{t("para_toggle")}</div>
+          <div className="pt-desc">{t("para_desc")}</div>
+        </div>
+      </label>
+      <div className="sec" style={{marginTop:16}}>{t("sec_samples",samples.length)}</div>
+      <div className="filt">
+        {["all","buying","browsing","intent_override","boundary"].map(f=>
+          <button key={f} className={filter===f?"on":""} onClick={()=>setFilter(f)}>
+            {f==="all"?t("filt_all"):f}</button>)}
+      </div>
+      {list.slice(0,60).map(s=>
+        <div key={s.sample_id} className={"samp"+(sel===s.sample_id?" on":"")} onClick={()=>run(s)}>
+          <div><span className="id">{s.sample_id}</span>
+            <span className={"pill p-"+s.scenario_type}>{s.scenario_type}</span></div>
+          <div className="ti">{s.category} — {s.target_title}</div>
+        </div>)}
+    </div></div>
+
+    {/* ---------------------------------------------------------- center --- */}
+    <div className="col">
+      <div className="stream" ref={streamRef}>
+        {!data && !busy && <div className="empty" style={{margin:"auto",textAlign:"center",whiteSpace:"pre-line"}}>
+          {t("empty_replay")}</div>}
+        {busy && <div style={{margin:"auto",textAlign:"center"}}><div className="spin"/>
+          <div style={{marginTop:10,color:"var(--muted)",fontSize:12}}>{t("busy_replay")}</div></div>}
+
+        {data?.paraphrased && shown.length>0 &&
+          <div className="parabanner">🔀 {t("para_badge")} — {t("para_desc")}</div>}
+
+        {shown.map(x=><React.Fragment key={x.turn}>
+          <div className="turnmark">{t("turn",x.turn)}{x.counts===false && " · "+t("pre_override")}</div>
+          <div className="msg u"><div className="av u">U</div><div className="bub">{x.user}</div></div>
+          <div className="msg"><div className="av a">AI</div><div className="bub">{x.reply}</div></div>
+          {!x.trace?.gate && <HeldBar reason={x.trace?.gate_reason}/>}
+          {x.items.length>0 &&
+            <div className="grid">{x.items.map((p,i)=>
+              <ProductCard key={p.parent_asin} p={p} rank={i+1}
+                isTarget={data&&p.parent_asin===data.target.parent_asin}/>)}</div>}
+        </React.Fragment>)}
+
+        {data && done && <div className={"verdict "+(data.hit?"hit":"miss")}>
+          <div className="vm"><span>{t("v_result")}</span><b style={{color:data.hit?"var(--green)":"var(--red)"}}>
+            {data.hit?"HIT":"MISS"}</b></div>
+          <div className="vm"><span>{t("v_hit_turn")}</span><b>{data.first_hit_turn??"—"}</b></div>
+          <div className="vm"><span>{t("v_rank")}</span><b>#{data.best_rank??"—"}</b></div>
+          <div className="vm"><span>{t("v_rr")}</span><b>{data.reciprocal_rank}</b></div>
+          <div className="vm" style={{marginLeft:"auto",textAlign:"right"}}>
+            <span>{t("v_target")}</span><b style={{fontSize:11}}>{data.target.parent_asin}</b></div>
+        </div>}
+      </div>
+
+      {data && <div className="pbar">
+        <button disabled={upto<=1} onClick={()=>{setPlaying(false);setUpto(u=>u-1)}}>{t("pb_prev")}</button>
+        <button onClick={()=>setPlaying(p=>!p)} disabled={done}>{playing?t("pb_pause"):t("pb_play")}</button>
+        <button disabled={done} onClick={()=>{setPlaying(false);setUpto(u=>u+1)}}>{t("pb_next")}</button>
+        <button onClick={()=>{setPlaying(false);setUpto(data.turns.length)}}>{t("pb_skip")}</button>
+        <span className="sp">{t("pb_pos",upto,data.turns.length,data.scenario_type)}
+          {data.paraphrased && <span className="badge b-am" style={{marginLeft:8}}>{t("para_badge")}</span>}</span>
+      </div>}
+    </div>
+
+    {/* ----------------------------------------------------------- right --- */}
+    <div className="col r">
+      <Reasoning tr={cur?.trace} meta={meta}/>
+      <div className="scroll" style={{flex:"none",borderTop:"1px solid var(--line)",maxHeight:"42%"}}>
+        <div className="sec">{t("sec_cons")}</div>
+        <Constraints turns={data?.turns||[]} upto={upto}/>
+        {data && <>
+          <div className="sec">{t("sec_profile")}</div>
+          <Profile p={data.profile}/>
+          {done && <>
+            <div className="sec" style={{color:"var(--violet)"}}>{t("sec_hidden")}</div>
+            <div className="box hidden-card">
+              {(data.hidden_card.hard_constraints||[]).map((c,i)=>
+                <div className="rrow" key={"h"+i}><span>hard[{i}]</span><b>{c.slice(0,60)}</b></div>)}
+              {(data.hidden_card.soft_preferences||[]).map((c,i)=>
+                <div className="rrow" key={"s"+i}><span>soft[{i}]</span><b>{c.slice(0,60)}</b></div>)}
+            </div>
+          </>}
+        </>}
+      </div>
+    </div>
+  </div>;
+}
+
+function HeldBar({reason}){
+  const {t,gateReason}=useLang();
+  return <div className="held">⏸ {t("held")}{gateReason(reason)}</div>;
+}
+
+/* ======================================================  LIVE  ============ */
+const HINTS=[
+  "I'm looking for Watches Wrist Watches, but I'm still exploring.",
+  "I'm looking for Jewelry Necklaces. A key requirement is: Material:alloy.",
+  "Hi there - I'm after Accessories Belts. The one thing I really care about: 100% Leather.",
+  "For that, what matters is: Water Resistant; 3 Year Battery.",
+];
+
+function Live({meta}){
+  const {t}=useLang();
+  const [sid,setSid]=useState(null);
+  const [msgs,setMsgs]=useState([]);
+  const [text,setText]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [profile,setProfile]=useState(null);
+  const streamRef=useRef(null);
+
+  const boot=useCallback(async()=>{
+    const s=await api("/api/session",{}); setSid(s.session_id); setProfile(s.profile); setMsgs([]);
+  },[]);
+  useEffect(()=>{boot()},[boot]);
+  useEffect(()=>{if(streamRef.current)streamRef.current.scrollTop=streamRef.current.scrollHeight},[msgs]);
+
+  const send=async v=>{
+    const q=(v??text).trim(); if(!q||!sid||busy) return;
+    setText(""); setBusy(true);
+    setMsgs(m=>[...m,{who:"u",text:q}]);
+    try{
+      const r=await api("/api/chat",{session_id:sid,message:q});
+      setMsgs(m=>[...m,{who:"a",text:r.reply,items:r.items,trace:r.trace}]);
+    }catch(e){ setMsgs(m=>[...m,{who:"a",text:"⚠ "+e.message}]) }
+    finally{ setBusy(false) }
+  };
+
+  const lastTrace=[...msgs].reverse().find(m=>m.trace)?.trace;
+  const turns=msgs.filter(m=>m.trace).map(m=>({turn:m.trace.turn,user:"",trace:m.trace}));
+
+  return <div className="main">
+    <div className="col l"><div className="scroll">
+      <div className="sec">{t("sec_session")}</div>
+      <Profile p={profile}/>
+      <div className="sec">{t("sec_cons")}</div>
+      <Constraints turns={turns} upto={turns.length}/>
+      <div className="sec">{t("sec_actions")}</div>
+      <div className="box" style={{cursor:"pointer"}} onClick={boot}>
+        <div style={{fontSize:12,color:"var(--cyan)"}}>{t("new_session")}</div>
+        <div style={{fontSize:11,color:"var(--dim)",marginTop:3}}>{t("new_session_desc")}</div>
+      </div>
+    </div></div>
+
+    <div className="col">
+      <div className="stream" ref={streamRef}>
+        {!msgs.length && <div className="empty" style={{margin:"auto",textAlign:"center",whiteSpace:"pre-line"}}>
+          {t("empty_live")}</div>}
+        {msgs.map((m,i)=><React.Fragment key={i}>
+          {m.trace && <div className="turnmark">{t("turn",m.trace.turn)}</div>}
+          <div className={"msg"+(m.who==="u"?" u":"")}>
+            <div className={"av "+m.who}>{m.who==="u"?"U":"AI"}</div>
+            <div className="bub">{m.text}</div></div>
+          {m.trace && !m.trace.gate && <HeldBar reason={m.trace.gate_reason}/>}
+          {m.items?.length>0 && <div className="grid">
+            {m.items.map((p,j)=><ProductCard key={p.parent_asin} p={p} rank={j+1}/>)}</div>}
+        </React.Fragment>)}
+        {busy && <div className="msg"><div className="av a">AI</div>
+          <div className="bub" style={{color:"var(--dim)"}}>{t("searching")}</div></div>}
+      </div>
+      <div className="hints">{HINTS.map((h,i)=>
+        <button key={i} onClick={()=>send(h)}>{h.length>52?h.slice(0,52)+"…":h}</button>)}</div>
+      <div className="comp">
+        <input value={text} placeholder={t("composer_ph")}
+          onChange={e=>setText(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&send()}/>
+        <button onClick={()=>send()} disabled={busy||!text.trim()}>{t("send")}</button>
+      </div>
+    </div>
+
+    <div className="col r"><Reasoning tr={lastTrace} meta={meta}/></div>
+  </div>;
+}
+
+/* ------------------------------------------------------------- toggles ---- */
+function ThemeToggle(){
+  const {t}=useLang();
+  const THEMES={auto:{icon:"◐",label:t("theme_auto"),next:"light"},
+                light:{icon:"☀",label:t("theme_light"),next:"dark"},
+                dark:{icon:"☾",label:t("theme_dark"),next:"auto"}};
+  const [mode,setMode]=useState(()=>{
+    try{ const v=localStorage.getItem("tj-theme"); return v==="light"||v==="dark"?v:"auto" }
+    catch(e){ return "auto" }
+  });
+  useEffect(()=>{
+    const el=document.documentElement;
+    // Suppress transitions for the swap: a transitioned property whose value
+    // comes from a custom property gets pinned when that property changes.
+    el.classList.add("theme-switching");
+    void el.offsetHeight;   // flush styles so transition:none is live BEFORE the swap
+    if(mode==="auto") delete el.dataset.theme; else el.dataset.theme=mode;
+    try{ mode==="auto"? localStorage.removeItem("tj-theme") : localStorage.setItem("tj-theme",mode) }catch(e){}
+    const id=setTimeout(()=>el.classList.remove("theme-switching"),120);
+    return ()=>clearTimeout(id);
+  },[mode]);
+  useEffect(()=>{
+    if(mode!=="auto"||!window.matchMedia) return;
+    const mq=window.matchMedia("(prefers-color-scheme: dark)");
+    const el=document.documentElement;
+    let id;
+    const on=()=>{ el.classList.add("theme-switching");
+      clearTimeout(id); id=setTimeout(()=>el.classList.remove("theme-switching"),120); };
+    mq.addEventListener("change",on);
+    return ()=>{ mq.removeEventListener("change",on); clearTimeout(id); };
+  },[mode]);
+  const th=THEMES[mode];
+  return <button className="theme-btn" onClick={()=>setMode(th.next)} title={t("theme_tip",th.label)}>
+    <span className="ti">{th.icon}</span>{th.label}</button>;
+}
+
+function LangToggle(){
+  const {lang,setLang,t}=useLang();
+  return <button className="theme-btn" onClick={()=>setLang(lang==="zh"?"en":"zh")} title={t("lang_tip")}>
+    <span className="ti">🌐</span>{lang==="zh"?"EN":"中文"}</button>;
+}
+
+/* ================================================================  APP ==== */
+function App(){
+  const L=useLangState();
+  const {t}=L;
+  const [meta,setMeta]=useState(null);
+  const [err,setErr]=useState(null);
+  const [tab,setTab]=useState("replay");
+  useEffect(()=>{api("/api/meta").then(setMeta).catch(e=>setErr(e.message))},[]);
+
+  return <LangCtx.Provider value={L}>
+    {err? <div className="boot"><div>⚠ {t("boot_fail")}<br/><span style={{fontSize:12}}>{err}</span></div></div>
+    : !meta? <div className="boot"><div><div className="spin"/>
+        <div style={{marginTop:12}}>{t("boot_building")}</div>
+        <div style={{fontSize:11,color:"var(--dim)",marginTop:5}}>{t("boot_once")}</div></div></div>
+    : <>
+      <div className="hdr">
+        <div className="brand"><div className="dot"/>Shopping Copilot
+          <small>TechJam · Conversational Search</small></div>
+        <div className="tabs">
+          <button className={tab==="replay"?"on":""} onClick={()=>setTab("replay")}>{t("tab_replay")}</button>
+          <button className={tab==="live"?"on":""} onClick={()=>setTab("live")}>{t("tab_live")}</button>
+        </div>
+        <div className="chips">
+          <span className="chip win">Score <b>{meta.benchmark?.recommended_technical_score?.toFixed(4)??"—"}</b></span>
+          <span className="chip base">Baseline <b>{meta.baseline.technical_score.toFixed(4)}</b></span>
+          <span className="chip">Hit@10 <b>{meta.benchmark?.hit_rate_at_10?.toFixed(3)??"—"}</b></span>
+          <span className="chip">MRR <b>{meta.benchmark?.mrr?.toFixed(4)??"—"}</b></span>
+          <span className="chip">MTTC <b>{meta.benchmark?.mttc?.toFixed(2)??"—"}</b></span>
+          <span className="chip">Tokens <b>0</b></span>
+        </div>
+        <LangToggle/>
+        <ThemeToggle/>
+      </div>
+      {tab==="replay"? <Replay meta={meta}/> : <Live meta={meta}/>}
+    </>}
+  </LangCtx.Provider>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

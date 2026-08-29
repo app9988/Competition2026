@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "copilot",
+      "runtimeExecutable": "/Users/aroma/Code/claude/CompetitionAI/.venv/bin/python",
+      "runtimeArgs": ["-m", "uvicorn", "server.app:app", "--app-dir", "solution", "--port", "8000"],
+      "port": 8000
+    }
+  ]
+}
