@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from src.agent import Agent                                   # noqa: E402
+from src.agent import Agent as BaselineAgent                  # noqa: E402
 
 ALLOWED = {"category", "material", "color", "size", "style", "brand",
            "budget", "feature", "use_case", "other", None}
@@ -67,7 +67,18 @@ def check(resp, where, top_k=10):
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--catalog", required=True)
+    ap.add_argument(
+        "--agent-module",
+        choices=("baseline", "tail_repair"),
+        default="baseline",
+        help="agent implementation to exercise (default: baseline)",
+    )
     args = ap.parse_args()
+
+    if args.agent_module == "tail_repair":
+        from experimental.tail_repair import Agent
+    else:
+        Agent = BaselineAgent
 
     print("building index ...", flush=True)
     agent = Agent(args.catalog)
