@@ -1,0 +1,50 @@
+{
+  "parsers": [
+    "template",
+    "fuzzy"
+  ],
+  "router": "rule",
+  "ranker_name": "linear",
+  "ask_policy": "gru_gate",
+  "channels": {
+    "bm25": true
+  },
+  "bm25_top": 500,
+  "cascade": {
+    "fuzzy_threshold": 0.6,
+    "min_keep": 3,
+    "min_keep_frac": 0.02,
+    "filter_weight_min": 0.5
+  },
+  "ranker": {
+    "coverage": 10.0,
+    "exact_bonus": 3.0,
+    "popularity": 2.0,
+    "quality": 4.0,
+    "price": 1.5,
+    "profile": 0.3,
+    "category": 1.0,
+    "pool": 2.0,
+    "bm25": 0.2,
+    "card_hit": 20.0,
+    "belief": 50.0
+  },
+  "ask": {
+    "mode": "wildcard_first",
+    "max_other_asks": 10,
+    "max_attr_asks": 2,
+    "eig_pool_cap": 300,
+    "eps_stop": 0.05,
+    "sequential_top1": true,
+    "late_turn_top_k": {
+      "10": 10
+    },
+    "gate": {
+      "w_H": 1.0,
+      "w_EIG": 2.0,
+      "w_turn": 0.6,
+      "w_conf": 1.5,
+      "bias": 0.0
+    }
+  }
+}

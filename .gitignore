@@ -1,0 +1,26 @@
+# Official participant kit (clone locally as described in README.md)
+/techjam-conversational-search/
+catalog.jsonl
+catalog.jsonl.gz
+public_set.jsonl
+
+# Artifacts derived from the official catalog and evaluation sessions
+/shopping-copilot/cache/
+/shopping-copilot/runs/
+/submission/cache/
+
+# Python and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+*.log
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

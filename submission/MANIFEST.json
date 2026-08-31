@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "entry_points": [
+    "agent:Agent",
+    "starter.agent:Agent"
+  ],
+  "python": ">=3.10",
+  "network_required": false,
+  "file_count": 39,
+  "bytes": 83727,
+  "excluded": [
+    "catalog",
+    "public_set",
+    "runs",
+    "cache",
+    "UI",
+    "papers"
+  ]
+}

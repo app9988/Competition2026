@@ -1,0 +1,2 @@
+# Core agent + evaluation: Python 3.10+ standard library only (no dependencies).
+# Optional extras live in requirements-ui.txt / future dense channel.

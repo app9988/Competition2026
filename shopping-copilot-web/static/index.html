@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Shopping Copilot conversational search evaluation console" />
+    <title>Shopping Copilot · Evaluation Lab</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/app.css" />
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <section id="indexLoader" class="index-loader" role="status" aria-live="polite">
+      <div class="index-loader__ambient" aria-hidden="true"></div>
+      <div class="index-loader__card">
+        <div class="index-visual" aria-hidden="true">
+          <div class="index-visual__orbit index-visual__orbit--outer">
+            <i></i><i></i><i></i><i></i>
+          </div>
+          <div class="index-visual__orbit index-visual__orbit--inner"><i></i><i></i><i></i></div>
+          <div class="index-visual__core">
+            <span class="index-visual__lens"></span>
+            <b>50K</b>
+            <small>ITEMS</small>
+          </div>
+        </div>
+        <span class="loader-eyebrow">SHOPPING COPILOT · IN-MEMORY ENGINE</span>
+        <h1>正在构建商品索引</h1>
+        <p id="indexMessage">正在准备商品目录与评测资源</p>
+        <div class="loader-progress" aria-label="索引构建进度">
+          <i id="indexProgress"></i>
+        </div>
+        <div class="loader-meta">
+          <span id="indexPhase">STARTING</span>
+          <strong id="indexPercent">2%</strong>
+          <span id="indexElapsed">0.0s</span>
+        </div>
+        <div class="loader-stream" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <small class="loader-note">首次启动需要建立内存检索、类别与排序索引，完成后会自动进入评测界面。</small>
+      </div>
+    </section>
+
+    <div id="app" class="app-frame app-hidden" aria-hidden="true">
+      <header class="app-header">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">⌁</div>
+          <div>
+            <strong>Shopping Copilot · Evaluation Lab</strong>
+            <span>Conversational Search Evaluation Console</span>
+          </div>
+        </div>
+        <nav class="main-nav" aria-label="Main navigation">
+          <button id="singleTab" type="button">Single Test</button>
+          <button id="fullTab" class="active" type="button">Full Evaluation</button>
+        </nav>
+        <div class="header-date"><span aria-hidden="true">◫</span><span id="headerDate"></span></div>
+      </header>
+
+      <main id="fullView" class="content-shell">
+        <section class="control-strip">
+          <div class="field-group field-group--config">
+            <label>Config</label>
+            <div class="fixed-config"><span></span>default.json</div>
+          </div>
+          <div class="field-group">
+            <label for="fullMode">Mode</label>
+            <select id="fullMode">
+              <option value="0">Original (A)</option>
+              <option value="1">Light paraphrase</option>
+              <option value="2">Heavy paraphrase</option>
+            </select>
+          </div>
+          <div class="field-group field-group--small">
+            <label for="fullLimit">Samples</label>
+            <select id="fullLimit">
+              <option value="200">200</option><option value="100">100</option>
+              <option value="50">50</option><option value="20">20</option>
+            </select>
+          </div>
+          <button id="runFull" class="primary-action" type="button"><span aria-hidden="true">▶</span>Run Full Evaluation</button>
+          <div class="run-progress">
+            <div class="progress-meta"><span>Progress</span><strong id="jobProgressText">0/200</strong></div>
+            <div class="progress-track"><i id="jobProgressBar"></i></div>
+          </div>
+          <div class="duration"><span class="duration-icon" aria-hidden="true">◷</span><span>Elapsed</span><strong id="jobElapsed">0.0s</strong></div>
+        </section>
+        <div id="fullError" class="error-banner is-hidden" role="alert"></div>
+
+        <section id="metricStrip" class="metric-strip" aria-label="Evaluation summary"></section>
+        <div class="overview-grid">
+          <section class="section-card chain-card">
+            <div class="section-heading compact-heading">
+              <div><h2>Link Health</h2><p>L1–L6 core stages · score threshold 0.75</p></div>
+              <span id="chainStatus" class="status-pill status-pill--success">✓ All healthy</span>
+            </div>
+            <div id="chainTrack" class="chain-track"></div>
+          </section>
+          <section class="section-card scenario-card">
+            <div class="section-heading compact-heading"><div><h2>Scenario Metrics</h2><p>Hit and efficiency grouped by scenario</p></div></div>
+            <div class="mini-table-wrap">
+              <table class="mini-table">
+                <thead><tr><th>Scenario</th><th>Samples</th><th>Hit@10</th><th>MRR</th><th>MTTC</th><th>Rank1</th><th>LoopScore</th></tr></thead>
+                <tbody id="scenarioRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <div class="results-grid">
+          <section class="section-card result-table-card">
+            <div class="table-titlebar">
+              <div><h2>Full Evaluation Results</h2><p id="resultCount">0 rows · click a row for the score breakdown</p></div>
+              <label class="search-box"><span aria-hidden="true">⌕</span><input id="resultSearch" type="search" placeholder="Search sample / ASIN" /></label>
+            </div>
+            <div class="result-scroll">
+              <table class="result-table">
+                <thead><tr><th>Status</th><th>Sample</th><th>Scenario</th><th>Difficulty</th><th>Turn</th><th>Rank</th><th>Hit</th><th>LoopScore</th><th>Target ASIN</th><th>Product Title</th></tr></thead>
+                <tbody id="resultRows"></tbody>
+              </table>
+            </div>
+          </section>
+          <aside id="resultDrawer" class="section-card result-drawer drawer-empty">
+            <span class="drawer-empty__icon" aria-hidden="true">◎</span><p>Select a result to see details</p>
+          </aside>
+        </div>
+      </main>
+
+      <main id="singleView" class="content-shell single-shell is-hidden">
+        <section class="control-strip single-controls">
+          <div class="field-group sample-field"><label for="singleSample">Sample</label><select id="singleSample"></select></div>
+          <div class="field-group"><label for="singleMode">Paraphrase</label><select id="singleMode"><option value="0">Original (A)</option><option value="1">Light paraphrase</option><option value="2">Heavy paraphrase</option></select></div>
+          <button id="runSingle" class="primary-action" type="button"><span aria-hidden="true">▶</span>Run Single Test</button>
+          <div id="playbackActions" class="playback-actions is-hidden">
+            <button id="replaySingle" type="button" title="Replay this sample" aria-label="Replay this sample">↻</button>
+            <button id="nextSingle" type="button" title="Next sample" aria-label="Next sample">▸</button>
+          </div>
+        </section>
+        <div id="singleError" class="error-banner is-hidden" role="alert"></div>
+        <section id="singleEmpty" class="single-empty"><span aria-hidden="true">◎</span><h2>Pick any of the 200 public samples</h2><p>Runs the real agent and replays every turn, recommendation, link metric and final score.</p></section>
+        <div id="singleResult" class="is-hidden">
+          <section id="singleHero" class="single-hero"></section>
+          <section id="singleMetrics" class="single-metrics"></section>
+          <div class="single-grid">
+            <section class="section-card transcript-panel">
+              <div class="section-heading"><div><h2>Conversation Replay</h2><p id="transcriptProgress">Real trace</p></div><span id="transcriptStatus" class="status-pill status-pill--success">✓ Target hit</span></div>
+              <div id="transcriptList" class="transcript-list"></div>
+            </section>
+            <aside class="single-aside">
+              <section id="selectedProduct" class="section-card selected-product-card"></section>
+              <section id="scoreBreakdown" class="section-card score-breakdown"></section>
+            </aside>
+          </div>
+        </div>
+      </main>
+
+      <footer class="app-footer"><span>Shopping Copilot Evaluation Lab</span><span>200 public sessions · L1–L6 observability</span></footer>
+    </div>
+
+    <noscript><div class="noscript">This evaluation console requires JavaScript.</div></noscript>
+  </body>
+</html>
