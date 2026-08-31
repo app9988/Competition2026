@@ -27,10 +27,11 @@ ACCENT_FILL = "#eef2fa"
 STAGES = [
     ("1 · Parsing", ["template →", "fuzzy fallback"]),
     ("2 · Dialogue state", ["typed constraints", "override handling"]),
-    ("3 · Retrieval", ["category + BM25", "never-evict", "cascade filter"]),
+    ("3 · Retrieval", ["category + constraints", "BM25 candidate union", "cascade with backoff"]),
     ("4 · Belief scoring", ["replay customer", "reply policy", "per candidate"]),
     ("5 · Ranking", ["belief-aware", "linear scorer", "gated quality prior"]),
-    ("6 · Guidance", ["EIG question pick", "confidence-aware", "reply style"]),
+    ("6 · Guidance", ["wildcard-first + EIG", "question selection",
+                      "confidence-aware", "reply style"]),
     ("7 · Exposure", ["top-1 by default", "top-10 fallback"]),
 ]
 
@@ -38,8 +39,8 @@ BOX_W, BOX_H, GAP = 1.66, 1.12, 0.22
 Y0 = 1.10
 X0 = 1.48
 
-fig, ax = plt.subplots(figsize=(14.9, 3.8))
-ax.set_xlim(0, 16.5)
+fig, ax = plt.subplots(figsize=(14.6, 3.8))
+ax.set_xlim(0, 16.2)
 ax.set_ylim(-0.74, 2.95)
 ax.axis("off")
 
@@ -86,20 +87,22 @@ box(0.18, iy, io_w, io_h, fc="white", style="round,pad=0.035,rounding_size=0.30"
 ax.text(0.18 + io_w / 2, iy + io_h / 2, "customer\nmessage", ha="center", va="center", fontsize=7.6)
 arrow((0.18 + io_w + 0.02, Y0 + BOX_H / 2), (X0 - 0.02, Y0 + BOX_H / 2))
 
-ox = centers[-1][1] + 0.38
-box(ox, iy, 1.34, io_h, fc=ACCENT_FILL, ec=ACCENT, style="round,pad=0.035,rounding_size=0.30")
-ax.text(ox + 0.67, iy + io_h / 2, "response +\nrecommendations", ha="center", va="center",
-        fontsize=7.0, color=ACCENT)
+ox = centers[-1][1] + 0.40
+out_w = 1.30
+box(ox, iy, out_w, io_h, fc=ACCENT_FILL, ec=ACCENT,
+    style="round,pad=0.035,rounding_size=0.30")
+ax.text(ox + out_w / 2, iy + io_h / 2, "response +\nrecommendations",
+        ha="center", va="center", fontsize=7.0, color=ACCENT)
 arrow((centers[-1][1] + 0.012, Y0 + BOX_H / 2), (ox - 0.02, Y0 + BOX_H / 2), color=ACCENT)
 
 # ---- offline index (feeds stages 3, 4, 5) ----------------------------------
-off_w, off_h = 5.75, 0.56
+off_w, off_h = 6.40, 0.56
 mid = (centers[2][0] + centers[4][1]) / 2
 off_x, off_y = mid - off_w / 2, -0.08
 box(off_x, off_y, off_w, off_h, fc="white", ec=MUTED, lw=0.8)
 ax.text(off_x + off_w / 2, off_y + off_h / 2,
-        "L0 · offline index  (50 k products: metadata, intent cards, SQLite FTS5, priors)",
-        ha="center", va="center", fontsize=7.2, color=MUTED)
+        "L0 · offline index  (50 k products: metadata, derived intent cards, SQLite FTS5, priors)",
+        ha="center", va="center", fontsize=6.8, color=MUTED)
 for target in (2, 3, 4):
     tx = X0 + target * (BOX_W + GAP) + BOX_W / 2
     arrow((tx, off_y + off_h + 0.02), (tx, Y0 - 0.02), color=MUTED, lw=0.8,
@@ -107,8 +110,10 @@ for target in (2, 3, 4):
 
 # ---- feedback loop ---------------------------------------------------------
 fy = -0.56
-ax.plot([ox + 0.67, ox + 0.67], [iy - 0.02, fy], color=ACCENT, linewidth=0.9, linestyle=(0, (4, 2)))
-ax.plot([ox + 0.67, 0.18 + io_w / 2], [fy, fy], color=ACCENT, linewidth=0.9, linestyle=(0, (4, 2)))
+ax.plot([ox + out_w / 2, ox + out_w / 2], [iy - 0.02, fy], color=ACCENT,
+        linewidth=0.9, linestyle=(0, (4, 2)))
+ax.plot([ox + out_w / 2, 0.18 + io_w / 2], [fy, fy], color=ACCENT,
+        linewidth=0.9, linestyle=(0, (4, 2)))
 arrow((0.18 + io_w / 2, fy), (0.18 + io_w / 2, iy - 0.04), color=ACCENT, lw=0.9,
       style=(0, (4, 2)), mut=8)
 ax.text(1.7, fy - 0.16,
