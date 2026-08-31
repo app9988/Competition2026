@@ -298,7 +298,7 @@ and all 3 official evaluator tests.
 
 ## 8. Team member contributions
 
-- **Dennis** — core algorithm and system architecture: redesigned the agent as
+- **Yang Nan** — core algorithm and system architecture: redesigned the agent as
   the seven-stage hybrid pipeline; implemented dynamic dialogue/override state,
   catalog-grounded belief updates, never-evict constraint retrieval,
   belief-aware ranking and active clarification; repaired L1–L6 observability;
