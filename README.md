@@ -118,7 +118,7 @@ repository.
 
 ```powershell
 # 1. clone this repo and enter it
-git clone https://github.com/app9988/Competition2026.git -b submission
+git clone https://github.com/app9988/Competition2026.git -b main
 cd Competition2026
 
 # 2. clone the official kit INTO the repo root (exact folder name matters -
