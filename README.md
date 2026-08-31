@@ -51,7 +51,7 @@ the interface independent from parsing, retrieval, ranking, and dialogue logic.
 Requirements: **Python 3.10+**.
 
 The official participant kit and catalog are required at runtime. Place them at
-the expected paths using the commands for your operating system.
+the expected paths using the following Windows PowerShell commands.
 
 ### Windows (PowerShell)
 
@@ -75,89 +75,36 @@ python -c "import gzip,shutil; shutil.copyfileobj(gzip.open('data/catalog.jsonl.
 cd ..
 ```
 
-### macOS / Linux
-
-```bash
-# 1. clone this repo and enter it
-git clone https://github.com/app9988/Competition2026.git
-cd Competition2026
-
-# 2. clone the official kit into the repo root
-git clone https://github.com/TechJam2026/techjam-conversational-search.git
-
-# 3. download and decompress the catalog
-cd techjam-conversational-search
-python3 -c "import urllib.request as u; u.urlretrieve('https://github.com/TechJam2026/techjam-conversational-search/releases/download/participant-kit/catalog.jsonl.gz','data/catalog.jsonl.gz'); print('downloaded')"
-python3 -c "import gzip,shutil; shutil.copyfileobj(gzip.open('data/catalog.jsonl.gz','rb'), open('data/catalog.jsonl','wb')); print('decompressed')"
-cd ..
-```
-
 The core Agent has no third-party dependencies.
 
 ## 5. Run the evaluation
 
 Run the official 200-session evaluation from the repository root:
 
-**Windows:**
-
 ```powershell
 python run_official.py
 ```
 
-**macOS / Linux:**
-
-```bash
-python3 run_official.py
-```
-
 Run the instrumented evaluator for per-session and L1–L7 reports:
-
-**Windows:**
 
 ```powershell
 cd shopping-copilot
 python scripts\run_eval.py
 ```
 
-**macOS / Linux:**
-
-```bash
-cd shopping-copilot
-python3 scripts/run_eval.py
-```
-
 Optional paraphrase stress evaluation:
-
-**Windows:**
 
 ```powershell
 python scripts\run_eval.py --paraphrase 1
 python scripts\run_eval.py --paraphrase 2
 ```
 
-**macOS / Linux:**
-
-```bash
-python3 scripts/run_eval.py --paraphrase 1
-python3 scripts/run_eval.py --paraphrase 2
-```
-
 ## 6. Web evaluation console
-
-**Windows:**
 
 ```powershell
 python -m pip install -r shopping-copilot-web\backend\requirements.txt
 cd shopping-copilot-web
 python -m backend.app
-```
-
-**macOS / Linux:**
-
-```bash
-python3 -m pip install -r shopping-copilot-web/backend/requirements.txt
-cd shopping-copilot-web
-python3 -m backend.app
 ```
 
 Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
