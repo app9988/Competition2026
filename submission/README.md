@@ -1,7 +1,6 @@
 # CompetitionAI submission bundle
 
-- Python 3.10+; standard library only. Use `python` on Windows and `python3`
-  on macOS/Linux.
+- Python 3.10+; standard library only.
 - Offline at scoring time; no API keys or network services are required.
 - The official catalog is not bundled. The evaluator passes its catalog path
   to `Agent(...)`.
@@ -11,18 +10,10 @@
 ## Official harness
 
 Copy this bundle over the official kit root (preserving `starter/agent.py`) and
-run:
-
-### Windows
+run in Windows PowerShell:
 
 ```powershell
 python -m evaluator.local_evaluator
-```
-
-### macOS / Linux
-
-```bash
-python3 -m evaluator.local_evaluator
 ```
 
 Alternatively, add this directory to `PYTHONPATH` and import `Agent` from
