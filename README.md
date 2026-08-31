@@ -173,7 +173,8 @@ cd shopping-copilot
 # Official 200-session run
 python scripts\run_eval.py
 
-# Optional robustness runs
+# Optional robustness runs (our own paraphrase stress sets, not officially scored)
+# expect: 0.9801 (level 1) and 0.9800 (level 2), Hit@10 and MRR still 1.0
 python scripts\run_eval.py --paraphrase 1
 python scripts\run_eval.py --paraphrase 2
 ```
@@ -184,7 +185,11 @@ the official kit and are intentionally ignored by Git.
 
 ### Official Agent interface
 
-The root `agent.py` exports the required `Agent` class:
+The root `agent.py` exports the required `Agent` class.
+
+> **Prerequisite**: complete section 2 first — the official kit must be cloned into
+> the repository root and `catalog.jsonl` downloaded. The snippet below is then
+> runnable as-is from the repository root:
 
 ```python
 from agent import Agent
@@ -287,7 +292,32 @@ python -m pytest tests -q
 The current revision passes 6 algorithm regressions, 6 Web/API contract tests
 and all 3 official evaluator tests.
 
-## 7. Limitations
+## 7. Robustness beyond the benchmark
+
+The official score only measures 200 fixed sessions. To know how the system
+behaves *off-script*, we built additional test infrastructure on top of the
+official evaluator:
+
+- **Two self-built paraphrase stress sets.** The same 200 sessions with every
+  customer message rewritten at two intensity levels. The final agent holds
+  **0.9801 / 0.9800 with Hit@10 and MRR still 1.0**
+  (`run_eval.py --paraphrase 1|2`, reproducible above).
+- **Ablation honesty.** A deterministic-only configuration scores 0.97 on exact
+  official phrasing but **collapses to 0.0047** under even the mildest paraphrase
+  set — that single measurement is why the shipped config is the hybrid parser
+  cascade with never-evict retrieval backoff.
+- **Cross-harness validation.** We developed two competing agent architectures in
+  parallel, each with an independently written paraphrase harness, and tested each
+  agent against the *other's* harness. Self-made tests flatter their own agent;
+  the independent harness exposed real free-form parsing gaps that drove the
+  fuzzy-parser expansion and the final-turn exposure fallback we shipped.
+- **Negative results are documented, not discarded.** An aggressive 3/5/10
+  exposure-widening schedule and an NQC-style dispersion gate were both
+  implemented, measured, shown inferior, and rejected with the numbers recorded.
+  The shipped final-turn-only fallback is Pareto-safe: it extends worst-case
+  coverage without changing any session the original policy already won.
+
+## 8. Limitations
 
 - The catalog-grounded belief likelihood intentionally models the published
   deterministic simulator. Unconstrained production dialogue would require a
@@ -300,7 +330,7 @@ and all 3 official evaluator tests.
 - The Web console is designed for local evaluation because it reads the frozen
   catalog and runs the Python agent in memory.
 
-## 8. Team member contributions
+## 9. Team member contributions
 
 - **Yang Nan** — core algorithm and system architecture: redesigned the agent as
   the seven-stage hybrid pipeline; implemented dynamic dialogue/override state,

@@ -287,7 +287,7 @@ class EvaluationService:
             ),
             (
                 "L2",
-                "Routing",
+                "State & routing",
                 (
                     _as_float(l2.get("turn1_route_accuracy"))
                     + _as_float(l2.get("override_detected_rate"), 1.0)
@@ -297,7 +297,7 @@ class EvaluationService:
             ),
             (
                 "L3",
-                "Recall",
+                "Retrieval recall",
                 sum(
                     _as_float(l3.get(key))
                     for key in (
@@ -309,10 +309,10 @@ class EvaluationService:
                 / 3,
                 l3,
             ),
-            ("L4", "Ranking", _as_float(l4.get("rank_le10_rate")), l4),
+            ("L4", "Belief-aware ranking", _as_float(l4.get("rank_le10_rate")), l4),
             (
                 "L5",
-                "Asking",
+                "Ask policy",
                 (
                     1.0
                     - _as_float(l5.get("wasted_ask_rate"))
@@ -321,7 +321,7 @@ class EvaluationService:
                 / 2,
                 l5,
             ),
-            ("L6", "Session", max(0.0, min(1.0, efficiency)), l6),
+            ("L6", "Session efficiency", max(0.0, min(1.0, efficiency)), l6),
         ]
         return [
             {
