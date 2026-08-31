@@ -69,6 +69,10 @@ flowchart TB
     Runtime --> Report["Instrumented evaluation<br/>L1-L6 metrics and reports"]
 ```
 
+A simplified view of the per-turn agent pipeline:
+
+![Simplified pipeline](docs/architecture.png)
+
 The browser never imports algorithm code. FastAPI exposes a small HTTP contract,
 and its presentation adapter imports only
 `copilot.public_api.ShoppingCopilotRuntime`. Parsing, routing, retrieval,
