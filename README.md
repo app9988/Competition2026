@@ -68,22 +68,19 @@ The official Agent interface and Web console use the same search pipeline. The
 Web layer accesses the algorithm only through `ShoppingCopilotRuntime`, keeping
 the interface independent from parsing, retrieval, ranking, and dialogue logic.
 
-## 3. Core algorithm
+## 3. Solution approach
 
-1. **Hybrid parsing** combines high-precision templates with fuzzy parsing for
-   free-form queries, browsing intent, constraints, and intent overrides.
-2. **Dynamic dialogue state** accumulates typed slots and resets incompatible
-   state when the user changes direction.
-3. **Catalog-grounded belief updates** compare ordered observations with the
-   customer-response policy to refine candidate likelihoods.
-4. **Hybrid retrieval** combines category filtering, constraint cascades, and
-   BM25 while retaining candidates when uncertain constraints become too strict.
-5. **Belief-aware ranking** combines belief, constraint coverage, intent-card
-   overlap, category, BM25, quality, popularity, and profile signals.
-6. **Active clarification** uses expected information gain and a deterministic
-   confidence gate to decide whether another question is useful.
-7. **Metric-aware exposure** uses sequential Top-1 recommendations and a final
-   Top-10 fallback to balance precision, recall, and conversion speed.
+- **Intent routing and hybrid retrieval:** template and fuzzy parsing distinguish
+  buying, browsing, and intent changes; category, constraint, and BM25 signals
+  retrieve candidates with a never-evict fallback.
+- **Multi-turn state:** typed slots accumulate across turns, while intent
+  overrides reset incompatible state and previous recommendations provide
+  implicit negative feedback.
+- **Adaptive ranking:** catalog-grounded belief updates combine conversation
+  evidence with constraint, quality, popularity, and user-profile signals.
+- **Active guidance:** expected information gain determines when to clarify;
+  sequential Top-1 exposure and a final Top-10 fallback balance precision,
+  coverage, and conversion speed.
 
 ## 4. Setup and installation
 
