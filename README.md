@@ -148,9 +148,9 @@ progress and automatically enters the console when the runtime is ready.
 - **Yang Nan** — core algorithm and system architecture: redesigned the agent as
   the seven-stage hybrid pipeline; implemented dynamic dialogue/override state,
   catalog-grounded belief updates, never-evict constraint retrieval,
-  belief-aware ranking and active clarification; repaired L1–L6 observability;
-  introduced the stable public runtime boundary that decouples the algorithm
-  from the Web presentation layer.
+  belief-aware ranking and active clarification; implemented L1–L6 pipeline
+  tracing and diagnostic metrics; introduced the stable public runtime boundary
+  that decouples the algorithm from the Web presentation layer.
 - **Zheng Yiting** — evaluation and robustness: paraphrase stress testing,
   cross-harness validation, ablation studies, adversarial/contract checks, and
   cross-platform reproducibility verification.
