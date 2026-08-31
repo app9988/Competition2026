@@ -9,20 +9,11 @@ The console is a single-process local application:
 
 ## Start
 
-From this directory:
-
-### Windows
+From this directory in Windows PowerShell:
 
 ```powershell
 python -m pip install -r backend/requirements.txt
 python -m backend.app
-```
-
-### macOS / Linux
-
-```bash
-python3 -m pip install -r backend/requirements.txt
-python3 -m backend.app
 ```
 
 Open `http://127.0.0.1:8000/`. On a cold start, the page is returned
