@@ -87,7 +87,7 @@ Run the official 200-session evaluation from the repository root:
 python run_official.py
 ```
 
-Run the instrumented evaluator for per-session and L1–L6 reports:
+Run the instrumented evaluator for per-session and L1–L7 reports:
 
 ```powershell
 cd shopping-copilot
@@ -148,7 +148,7 @@ progress and automatically enters the console when the runtime is ready.
 - **Yang Nan** — core algorithm and system architecture: redesigned the agent as
   the seven-stage hybrid pipeline; implemented dynamic dialogue/override state,
   catalog-grounded belief updates, never-evict constraint retrieval,
-  belief-aware ranking and active clarification; implemented L1–L6 pipeline
+  belief-aware ranking and active clarification; implemented L1–L7 pipeline
   tracing and diagnostic metrics; introduced the stable public runtime boundary
   that decouples the algorithm from the Web presentation layer.
 - **Zheng Yiting** — evaluation and robustness: paraphrase stress testing,

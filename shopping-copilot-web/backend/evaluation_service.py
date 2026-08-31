@@ -298,12 +298,6 @@ class EvaluationService:
             ),
             (
                 "L3",
-                "Belief update",
-                _as_float(l3b.get("target_in_belief_top10")),
-                l3b,
-            ),
-            (
-                "L4",
                 "Retrieval",
                 sum(
                     _as_float(l3.get(key))
@@ -316,10 +310,16 @@ class EvaluationService:
                 / 3,
                 l3,
             ),
+            (
+                "L4",
+                "Belief scoring",
+                _as_float(l3b.get("target_in_belief_top10")),
+                l3b,
+            ),
             ("L5", "Ranking", _as_float(l4.get("rank_le10_rate")), l4),
             (
                 "L6",
-                "Ask policy",
+                "Guidance",
                 (
                     1.0
                     - _as_float(l5.get("wasted_ask_rate"))

@@ -332,10 +332,10 @@ class ShoppingCopilotRuntime:
             "chainMetrics": [
                 {"id": "L1", "name": "Constraint Parsing", "value": round(parse_recall, 4), "detail": f"{parsed_total}/{expected_total or 0} constraints hit"},
                 {"id": "L2", "name": "Dialogue State", "value": round(route_score, 4), "detail": transcript[0]["event"]},
-                {"id": "L3", "name": "Belief Update", "value": round(belief_score, 4), "detail": "target in belief top-10"},
-                {"id": "L4", "name": "Retrieval", "value": round(recall_score, 4), "detail": "target retention rate"},
+                {"id": "L3", "name": "Retrieval", "value": round(recall_score, 4), "detail": "target retention rate"},
+                {"id": "L4", "name": "Belief Scoring", "value": round(belief_score, 4), "detail": "target in belief top-10"},
                 {"id": "L5", "name": "Ranking", "value": round(rank_score, 4), "detail": f"final rank {best_rank or '-'}"},
-                {"id": "L6", "name": "Ask Policy", "value": round(gate_score, 4), "detail": "mean gate"},
+                {"id": "L6", "name": "Guidance", "value": round(gate_score, 4), "detail": "mean gate"},
                 {"id": "L7", "name": "Exposure", "value": score["efficiency"], "detail": f"done in {turns_used} turns"},
             ],
         }
