@@ -336,7 +336,7 @@ class ShoppingCopilotRuntime:
                 {"id": "L4", "name": "Retrieval", "value": round(recall_score, 4), "detail": "target retention rate"},
                 {"id": "L5", "name": "Ranking", "value": round(rank_score, 4), "detail": f"final rank {best_rank or '-'}"},
                 {"id": "L6", "name": "Ask Policy", "value": round(gate_score, 4), "detail": "mean gate"},
-                {"id": "L7", "name": "Exposure & Session", "value": score["efficiency"], "detail": f"done in {turns_used} turns"},
+                {"id": "L7", "name": "Exposure", "value": score["efficiency"], "detail": f"done in {turns_used} turns"},
             ],
         }
 

@@ -328,7 +328,7 @@ class EvaluationService:
                 / 2,
                 l5,
             ),
-            ("L7", "Exposure & session", max(0.0, min(1.0, efficiency)), l6),
+            ("L7", "Exposure", max(0.0, min(1.0, efficiency)), l6),
         ]
         return [
             {
