@@ -34,6 +34,12 @@ def aggregate_links(turn_rows: list[dict], session_rows: list[dict]) -> dict:
             "override_detected_rate": _rate([s.get("override_detected") for s in session_rows
                                              if s["scenario"] == "intent_override"]),
         },
+        "L3_belief": {
+            "target_in_belief_top10": _rate([r.get("target_in_belief_top10")
+                                             for r in eligible]),
+            "belief_rank_mean": _mean([r["belief_rank"] for r in eligible
+                                       if r.get("belief_rank")]),
+        },
         "L3_recall": {
             "category_pool_size_mean_t1": _mean([r["cat_pool"] for r in t1]),
             "target_in_category_pool_t1": _rate([r["target_in_cat"] for r in t1]),

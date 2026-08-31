@@ -10,6 +10,7 @@ import copilot.algo.routing.rule_router  # noqa: F401
 import copilot.algo.ranking.linear_ranker  # noqa: F401
 import copilot.algo.dialog.gru_gate_policy  # noqa: F401
 
+from copilot.algo.dialog.belief import candidate_belief
 from copilot.algo.dialog.state_machine import apply_event
 from copilot.algo.retrieval.bm25_retriever import BM25Retriever
 from copilot.algo.retrieval.category_filter import CategoryFilter
@@ -126,6 +127,12 @@ class Pipeline:
             "candidate_set": set(candidates),
             "n_seen": len(state.shown_asins),
             "raw_ranked": [asin for asin, _ in raw_ranked[:RANKED_TRACE_CAP]],
+            # instrumentation only: belief-only ordering of the leading
+            # candidates, so diagnostics can measure the belief stage itself
+            "belief_top": sorted(
+                (asin for asin, _ in raw_ranked[:50]),
+                key=lambda asin: -candidate_belief(asin, state, self.svc),
+            )[:10],
             "ranked": [asin for asin, _ in ranked[:RANKED_TRACE_CAP]],
             "shown_asins": list(top10),
             "ask_attribute": ask.attribute,

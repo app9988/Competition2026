@@ -268,6 +268,7 @@ class EvaluationService:
     def _link_views(metrics: dict[str, dict], efficiency: float) -> list[dict[str, Any]]:
         l1 = metrics.get("L1_parsing", {})
         l2 = metrics.get("L2_routing", {})
+        l3b = metrics.get("L3_belief", {})
         l3 = metrics.get("L3_recall", {})
         l4 = metrics.get("L4_ranking", {})
         l5 = metrics.get("L5_asking", {})
@@ -287,7 +288,7 @@ class EvaluationService:
             ),
             (
                 "L2",
-                "State & routing",
+                "Dialogue state",
                 (
                     _as_float(l2.get("turn1_route_accuracy"))
                     + _as_float(l2.get("override_detected_rate"), 1.0)
@@ -297,7 +298,13 @@ class EvaluationService:
             ),
             (
                 "L3",
-                "Retrieval recall",
+                "Belief update",
+                _as_float(l3b.get("target_in_belief_top10")),
+                l3b,
+            ),
+            (
+                "L4",
+                "Retrieval",
                 sum(
                     _as_float(l3.get(key))
                     for key in (
@@ -309,9 +316,9 @@ class EvaluationService:
                 / 3,
                 l3,
             ),
-            ("L4", "Belief-aware ranking", _as_float(l4.get("rank_le10_rate")), l4),
+            ("L5", "Ranking", _as_float(l4.get("rank_le10_rate")), l4),
             (
-                "L5",
+                "L6",
                 "Ask policy",
                 (
                     1.0
@@ -321,7 +328,7 @@ class EvaluationService:
                 / 2,
                 l5,
             ),
-            ("L6", "Session efficiency", max(0.0, min(1.0, efficiency)), l6),
+            ("L7", "Exposure & session", max(0.0, min(1.0, efficiency)), l6),
         ]
         return [
             {

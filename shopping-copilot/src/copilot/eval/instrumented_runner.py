@@ -105,6 +105,8 @@ def run(config_path: str | None, catalog: str, dataset: str, runs_dir: str,
             parsed_norms = list(trace.get("parsed_constraints") or
                                 trace.get("slots_added") or [])
             matched = semantic_match_count(expected_norms, parsed_norms)
+            belief_top = trace.get("belief_top") or []
+            belief_rank = belief_top.index(target) + 1 if target in belief_top else None
             if trace.get("event") == "override":
                 override_detected = True
             turn_rows.append({
@@ -124,6 +126,8 @@ def run(config_path: str | None, catalog: str, dataset: str, runs_dir: str,
                 ),
                 "raw_target_rank": raw_target_rank,
                 "target_rank": target_rank,
+                "belief_rank": belief_rank,
+                "target_in_belief_top10": belief_rank is not None,
                 "eligible": override_applied,
                 "shown_asins": "|".join(trace.get("shown_asins") or []),
                 "ask_attribute": trace.get("ask_attribute"),
