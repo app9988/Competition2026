@@ -1,0 +1,59 @@
+总体结构与项目一致，但并非完全对应实际执行顺序。有三处建议修正。
+
+符合实际的部分：
+
+- Template → fuzzy fallback 解析顺序正确。
+- 动态槽位、意图覆盖处理正确。
+- 类别、约束级联和 BM25 检索正确。
+- belief-aware 线性排序、EIG、置信度门控均存在。
+- 默认顺序 Top-1、第 10 轮 Top-10 正确。
+- 继续会话会将已展示商品视为隐式负反馈，图中的蓝色反馈回路准确。
+- 50,000 商品、SQLite FTS5、零 Token、无网络推理符合实现。
+
+需要修正的地方：
+
+1. Belief 与 Retrieval 的顺序相反
+
+实际代码先完成类别过滤、约束级联和 BM25 候选召回，再对候选计算 belief：
+
+`Retrieval → Belief scoring → Ranking`
+因此图中的第 3、4 阶段应该互换。
+
+2. `Ask or show` 不够准确
+
+当前系统并不是“提问或者展示商品”二选一。很多轮次会同时返回澄清问题和推荐商品；EIG 负责选择问题，confidence gate 主要影响回复方式。
+
+建议改为：
+
+> `6 · Guidance policy`  
+> `EIG question selection`  
+> `confidence-aware response`
+
+3. Top-10 不一定只在第 10 轮出现
+
+正常配置确实在第 10 轮切换 Top-10，但如果已经没有可提问的属性，代码也可能提前返回 Top-10。因此建议把：
+
+> `turn 10: top-10`
+
+改为：
+
+> `top-1 by default`  
+> `top-10 fallback`
+
+最符合实际的七阶段顺序应该是：
+
+```text
+1. Parsing
+2. Dialogue state
+3. Retrieval
+4. Candidate belief scoring
+5. Ranking
+6. Guidance policy
+7. Exposure
+```
+
+右侧输出建议由 `question + top-1 pick` 改成：
+
+```text
+response + recommendations
+```
