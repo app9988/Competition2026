@@ -24,42 +24,6 @@ questions, and recommends products without an LLM or external API.
 
 ## 2. Architecture
 
-```mermaid
-flowchart TB
-    Browser["HTML + CSS + JavaScript"] <-->|"/api/*"| Web["FastAPI"]
-    Web --> Runtime["ShoppingCopilotRuntime<br/>public algorithm interface"]
-
-    Evaluator["Official Evaluator"] --> Entry["root agent.py<br/>Agent interface"]
-    Kit[("Official catalog<br/>sessions and evaluator")]
-    Index[("In-memory metadata<br/>SQLite FTS5 index")]
-    Config["configs/default.json"]
-
-    Kit --> Evaluator
-    Kit --> Runtime
-    Kit --> Index
-
-    subgraph Pipeline["Seven-stage conversational search pipeline"]
-        Parse["1 · Intent and constraint parsing"] --> State["2 · Dialogue state and override handling"]
-        State --> Belief["3 · Catalog-grounded belief update"]
-        Belief --> Retrieve["4 · Hybrid retrieval"]
-        Retrieve --> Rank["5 · Belief-aware ranking"]
-        Rank --> Decide{"6 · Clarify or recommend"}
-        Decide -->|"clarify"| Ask["Expected-information-gain question"]
-        Decide -->|"recommend"| Expose["7 · Sequential product exposure"]
-        Ask -.-> Parse
-        Expose -.-> Parse
-    end
-
-    Runtime --> Parse
-    Entry --> Parse
-    Index --> Belief
-    Index --> Retrieve
-    Index --> Rank
-    Config --> Parse
-    Config --> Rank
-    Config --> Decide
-```
-
 A simplified view of the per-turn agent pipeline:
 
 ![Simplified pipeline](docs/architecture.png)
